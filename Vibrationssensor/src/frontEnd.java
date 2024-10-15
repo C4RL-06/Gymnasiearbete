@@ -1,5 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 
 public class frontEnd {
     //Map size: 1140x820 (1140/820)
@@ -31,7 +34,7 @@ public class frontEnd {
             }
         };
 
-        mapPanel.setPreferredSize(new Dimension(800,300));
+        mapPanel.setPreferredSize(new Dimension(800,575));
 
         //Test page
         testPage = new JPanel();
@@ -43,7 +46,16 @@ public class frontEnd {
         tabbedPane.addTab("Test Page", testPage);
 
         window.add(tabbedPane);
+        window.setLayout(new FlowLayout());
         window.pack();
         window.setVisible(true);
+
+        window.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                tabbedPane.setSize(e.getComponent().getWidth(), e.getComponent().getWidth()*(820/1140));
+                window.repaint();
+            }
+        });
     }
 }

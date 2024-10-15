@@ -50,13 +50,14 @@ public class frontEnd {
                         panelHeight = MAX_HEIGHT;
                         panelWidth = (int) (panelHeight / ASPECT_RATIO); // Recalculate width
                     }
+
                     int centerX = (getWidth() - panelWidth) / 2;
 
                     //Render image
                     g.drawImage(mapImage, centerX, 0, panelWidth, panelHeight, this);
                 } else {
                     //Error message if image doesn't render
-                    g.drawString("Image not found", 10, 20);
+                    g.drawString("Image not found", 20, 20);
                 }
             }
         };
@@ -75,6 +76,7 @@ public class frontEnd {
         window.setVisible(true);
 
         //This ensures the panel will revalidate and repaint properly when resized
+        //This could be imported to the class but we decided to write the libraries in-line
         window.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent evt) {
                 mapPanel.revalidate();

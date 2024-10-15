@@ -4,7 +4,7 @@ import java.awt.*;
 public class frontEnd {
 
     JFrame window = new JFrame();
-    JTabbedPane JTP;
+    JTabbedPane tabbedPane;
     JPanel mapPanel;
     JPanel testPage;
 
@@ -21,7 +21,7 @@ public class frontEnd {
         window.setLocationRelativeTo(null);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JTP = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
         //Creates Map Image In mapPanel
         mapPanel = new JPanel() {
             public void paintComponent(Graphics g) {
@@ -39,15 +39,11 @@ public class frontEnd {
 
 
         //Available Tabs (Row Order is Tab Index)
-        JTP.addTab("Map", mapPanel);
-        JTP.addTab("Test Page", testPage);
+        tabbedPane.addTab("Map", mapPanel);
+        tabbedPane.addTab("Test Page", testPage);
 
-        window.add(JTP);
+        window.add(tabbedPane);
         window.pack();
         window.setVisible(true);
     }
-
-
-
-
 }

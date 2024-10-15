@@ -19,7 +19,6 @@ public class frontEnd {
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         mapPanel = new JPanel() {
-            @Override
             public void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Image mapImage = new ImageIcon("././assets/karta.png").getImage();
@@ -32,7 +31,4 @@ public class frontEnd {
         window.pack();
         window.setVisible(true);
     }
-
-
-
 }

@@ -2,7 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class frontEnd {
-
+    //Map size: 1140x820 (1140/820)
     JFrame window = new JFrame();
     JTabbedPane tabbedPane;
     JPanel mapPanel;
@@ -30,8 +30,8 @@ public class frontEnd {
                 g.drawImage(mapImage, 0, 0, getWidth(), getHeight(), this);
             }
         };
-        mapPanel.setPreferredSize(new Dimension(800,800));
-        //window.setContentPane(mapPanel);
+
+        mapPanel.setPreferredSize(new Dimension(800,300));
 
         //Test page
         testPage = new JPanel();

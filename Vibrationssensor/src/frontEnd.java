@@ -44,10 +44,12 @@ public class frontEnd {
                 }
             }
         };
+        mapPanel.setBackground(new Color(36, 47, 62));
 
         //Test page
         testPage = new JPanel();
         testPage.add(new JLabel("Test page"));
+        testPage.setBackground(new Color(36, 47, 62));
 
         //Available Tabs (Row Order is Tab Index)
         tabbedPane.addTab("Map", mapPanel);
@@ -55,6 +57,7 @@ public class frontEnd {
 
         //Set the tabbedPane to fill the window
         window.setLayout(new BorderLayout());
+        window.getContentPane().setBackground(new Color(36, 47, 62));
         window.add(tabbedPane, BorderLayout.CENTER);
         window.setVisible(true);
 

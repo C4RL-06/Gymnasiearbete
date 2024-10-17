@@ -6,8 +6,6 @@ public class frontEnd {
     private static final int ORIGINAL_WIDTH = 1140;
     private static final int ORIGINAL_HEIGHT = 820;
     private static final double ASPECT_RATIO = (double) ORIGINAL_HEIGHT / ORIGINAL_WIDTH;
-    private static final int MAX_WIDTH = 800;
-    private static final int MAX_HEIGHT = 575;
 
     JFrame window;
     JTabbedPane tabbedPane;
@@ -21,7 +19,7 @@ public class frontEnd {
 
     private void startSettings() {
         window = new JFrame();
-        window.setSize(800, 800);
+        window.setSize(500, 500);
         window.setTitle("Road Guard Admin");
         window.setLocationRelativeTo(null);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -36,25 +34,10 @@ public class frontEnd {
                 Image mapImage = new ImageIcon("./assets/karta.png").getImage();
 
                 if (mapImage != null) {
-                    //Aspec ratio calculation
-                    int panelWidth = getWidth();
-                    int panelHeight = (int) (panelWidth * ASPECT_RATIO); // Maintain aspect ratio
+                    int centerX = (window.getWidth() - ((int) (window.getHeight()/ASPECT_RATIO))) / 2;
 
-                    //Maximum size
-                    if (panelWidth > MAX_WIDTH) {
-                        panelWidth = MAX_WIDTH;
-                        panelHeight = (int) (panelWidth * ASPECT_RATIO); // Recalculate height
-                    }
-
-                    if (panelHeight > MAX_HEIGHT) {
-                        panelHeight = MAX_HEIGHT;
-                        panelWidth = (int) (panelHeight / ASPECT_RATIO); // Recalculate width
-                    }
-
-                    int centerX = (getWidth() - panelWidth) / 2;
-
-                    //Render image
-                    g.drawImage(mapImage, centerX, 0, panelWidth, panelHeight, this);
+                    //Render image (-10 is a manual fix to a small blank space that was created to the left of the map)
+                    g.drawImage(mapImage, centerX - 10, 0, (int) (window.getHeight()/ASPECT_RATIO), window.getHeight(), this);
                 } else {
                     //Error message if image doesn't render
                     g.drawString("Image not found", 20, 20);
@@ -75,8 +58,8 @@ public class frontEnd {
         window.add(tabbedPane, BorderLayout.CENTER);
         window.setVisible(true);
 
-        //This ensures the panel will revalidate and repaint properly when resized
-        //This could be imported to the class but we decided to write the libraries in-line
+        //This ensures the window will revalidate and repaint when resized
+        //This could be imported into this class, but we decided to write the libraries in-line
         window.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent evt) {
                 mapPanel.revalidate();

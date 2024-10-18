@@ -1,11 +1,15 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 
 public class frontEnd {
     // Original map image size: 1140x820 (aspect ratio 1140/820)
     private static final int ORIGINAL_WIDTH = 1140;
     private static final int ORIGINAL_HEIGHT = 820;
     private static final double ASPECT_RATIO = (double) ORIGINAL_HEIGHT / ORIGINAL_WIDTH;
+    private ArrayList<ArrayList<Integer>> sensorCoordinates = new ArrayList<>();
 
     JFrame window;
     JTabbedPane tabbedPane;
@@ -18,6 +22,7 @@ public class frontEnd {
     }
 
     private void startSettings() {
+
         window = new JFrame();
         window.setSize(500, 500);
         window.setTitle("Road Guard Admin");
@@ -33,8 +38,8 @@ public class frontEnd {
                 super.paintComponent(g);
                 Image mapImage = new ImageIcon("./assets/karta.png").getImage();
 
+                int centerX = (window.getWidth() - ((int) (window.getHeight()/ASPECT_RATIO))) / 2;
                 if (mapImage != null) {
-                    int centerX = (window.getWidth() - ((int) (window.getHeight()/ASPECT_RATIO))) / 2;
 
                     //Render image (-10 is a manual fix to a small blank space that was created to the left of the map)
                     g.drawImage(mapImage, centerX - 10, 0, (int) (window.getHeight()/ASPECT_RATIO), window.getHeight(), this);
@@ -42,8 +47,28 @@ public class frontEnd {
                     //Error message if image doesn't render
                     g.drawString("Image not found", 20, 20);
                 }
+
+
+                g.setColor(Color.RED);
+                for (ArrayList<Integer> coordinate : sensorCoordinates) {
+                    System.out.println(coordinate);
+                    int x = coordinate.get(0);
+                    int y = coordinate.get(1);
+                    g.fillRect(x - 4, y - 4, 8, 8); // -4 to center rectangle on click
+                }
             }
         };
+        mapPanel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                ArrayList<Integer> sensorCoordinate = new ArrayList<>();
+                sensorCoordinate.add(e.getX());
+                sensorCoordinate.add(e.getY());
+                sensorCoordinates.add(sensorCoordinate);
+                mapPanel.repaint();
+            }
+        });
+
+
         mapPanel.setBackground(new Color(36, 47, 62));
 
         //Test page

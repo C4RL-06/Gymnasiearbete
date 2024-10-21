@@ -5,7 +5,20 @@ public class backEnd {
     public void startBackEnd()  {
         System.out.println("Back end started");
         //Maybe wrong com port
+
+
         SerialPort arduinoPort = SerialPort.getCommPort("COM3");
+
+        for (int i = 1; i<=6; i++){
+            arduinoPort = SerialPort.getCommPort("COM"+i);
+            System.out.println("COM"+i);
+            if (arduinoPort.openPort()){
+                break;
+            }
+        }
+
+
+
         arduinoPort.setComPortParameters(9600,8,1,0);
         arduinoPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,1024,0);
 
@@ -13,8 +26,6 @@ public class backEnd {
             System.out.println("ERROR: COM port not available");
 
         }
-
-        //wow
 
         try {
             InputStream in = arduinoPort.getInputStream();

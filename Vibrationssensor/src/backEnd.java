@@ -1,6 +1,4 @@
 import com.fazecast.jSerialComm.SerialPort;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -48,7 +46,7 @@ public class backEnd {
 
 
         arduinoPort.setComPortParameters(9600,8,1,0);
-        arduinoPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,10024,0);
+        arduinoPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,10240,0);
 
         if (!arduinoPort.openPort()){
             System.out.println("ERROR: COM port not available");
@@ -57,7 +55,7 @@ public class backEnd {
         try {
             InputStream in = arduinoPort.getInputStream();
             StringBuilder messageBuffer = new StringBuilder();
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[1024]; // max packet size of 1024
             int len;
 
             while ((len = in.read(buffer)) > 0) {
@@ -100,7 +98,7 @@ public class backEnd {
             DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt("2390")); //The Integer is the port that we are listening at
             System.out.println("Server Started. Listening for Clients on port 2390");
 
-            byte[] receiveData = new byte[1024]; //A max packet size of 1024
+            byte[] receiveData = new byte[1024]; // Max packet size of 1024
             DatagramPacket receivePacket;
 
             while (true) {
@@ -108,23 +106,35 @@ public class backEnd {
                 receivePacket = new DatagramPacket(receiveData, receiveData.length);
                 serverSocket.receive(receivePacket);
 
-                // Gets the client's IP address and port
-                InetAddress IPAddress = receivePacket.getAddress();
-                int port = receivePacket.getPort();
-                // Converts the incoming packet to a string
                 String incomingPacket = new String(receivePacket.getData(),0,receivePacket.getLength());
 
-                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                System.out.println("[" + timestamp + " ,IP: " + IPAddress + " ,Port: " + port +"]  " + incomingPacket);
+                // Process the received data
+                if (incomingPacket.endsWith("\n")) {
+
+                    incomingPacket = incomingPacket.trim(); // Remove whitespace/newline characters
+
+                    String[] splitInputStream = incomingPacket.split(":");
+
+                    int id = Integer.parseInt(splitInputStream[0].trim());
+                    int value = Integer.parseInt(splitInputStream[1].trim());
+
+                    // Gets the client's IP address and port
+                    InetAddress IPAddress = receivePacket.getAddress();
+                    int port = receivePacket.getPort();
+
+                    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+
+                    data[id] = value;
+                    System.out.println("[" + timestamp + " ,IP: " + IPAddress + " ,Port: " + port +"]  "+"Data ID: " + id + ", Value: " + value);
+
+                } else {
+                    System.out.println("Error: Incoming packet does not end with newline.");
+                }
+
             }
         } catch (Exception e){
             System.out.println("Error: "+e);
         }
-
-
-
-
-
 
     }
 

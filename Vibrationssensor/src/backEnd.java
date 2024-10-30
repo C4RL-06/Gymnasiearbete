@@ -1,5 +1,12 @@
 import com.fazecast.jSerialComm.SerialPort;
+
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.sql.Timestamp;
+import java.util.Scanner;
 
 public class backEnd {
     int[] id = {0,0,0};
@@ -7,12 +14,29 @@ public class backEnd {
 
     public void startBackEnd()  {
         System.out.println("Back end started");
-        //Maybe wrong com port
+
+        System.out.println("Back end started");
+        Scanner sc = new Scanner(System.in);
+        System.out.println("1. Communication Over UDP(WiFi) \n2. Communication over COM(USB Cable)");
+        int userInput = sc.nextInt();
+
+        if (userInput == 1){
+            communicationOverUDP();
+        } else if (userInput == 2){
+            communicationOverCOM();
+        } else {
+            System.out.println("Error: Invalid input");
+            startBackEnd();
+        }
 
 
+    }
+
+    private void communicationOverCOM(){
+        System.out.println("Communication Over COM Started");
         SerialPort arduinoPort = SerialPort.getCommPort("COM3");
 
-        for (int i = 1; i<=6; i++){
+        for (int i = 2; i<=6; i++){
             arduinoPort = SerialPort.getCommPort("COM"+i);
             System.out.println("COM"+i);
             if (arduinoPort.openPort()){
@@ -45,9 +69,9 @@ public class backEnd {
                     String inputStream = messageBuffer.toString().trim();
                     //System.out.println(inputStream);
 
-                    String[] splitInputStream = inputStream.split(":"); // spliting the inputStream at :
+                    String[] splitInputStream = inputStream.split(":"); // splitting the inputStream at :
 
-                    //System.out.println("Test Split: "+splitInputStream[0]+" "+splitInputStream[1]); //Testing the spliting of the inputStream
+                    //System.out.println("Test Split: "+splitInputStream[0]+" "+splitInputStream[1]); //Testing the splitting of the inputStream
 
                     int parseSplitInputStream0 = Integer.parseInt(splitInputStream[0].trim());
 
@@ -67,4 +91,41 @@ public class backEnd {
             arduinoPort.closePort();
         }
     }
+
+    private void communicationOverUDP(){
+        System.out.println("Communication Over UDP Started");
+        //You will need to allow the port 2390 through your firewall
+
+        try{
+            DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt("2390")); //The Integer is the port that we are listening at
+            System.out.println("Server Started. Listening for Clients on port 2390");
+
+            byte[] receiveData = new byte[1024]; //A max packet size of 1024
+            DatagramPacket receivePacket;
+
+            while (true) {
+
+                receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                serverSocket.receive(receivePacket);
+
+                // Gets the client's IP address and port
+                InetAddress IPAddress = receivePacket.getAddress();
+                int port = receivePacket.getPort();
+                // Converts the incoming packet to a string
+                String incomingPacket = new String(receivePacket.getData(),0,receivePacket.getLength());
+
+                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                System.out.println("[" + timestamp + " ,IP: " + IPAddress + " ,Port: " + port +"]  " + incomingPacket);
+            }
+        } catch (Exception e){
+            System.out.println("Error: "+e);
+        }
+
+
+
+
+
+
+    }
+
 }

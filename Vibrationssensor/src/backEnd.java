@@ -1,4 +1,6 @@
 import com.fazecast.jSerialComm.SerialPort;
+import jdk.jfr.Event;
+
 import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -12,8 +14,8 @@ public class backEnd {
 
     public void startBackEnd()  {
         System.out.println("Back end started");
+        collisionDetected(1, 2);
 
-        System.out.println("Back end started");
         Scanner sc = new Scanner(System.in);
         System.out.println("1. Communication Over UDP(WiFi) \n2. Communication over COM(USB Cable)");
         int userInput = sc.nextInt();
@@ -137,5 +139,21 @@ public class backEnd {
         }
 
     }
+    //Code to notify frontEnd when a collision happens between 2 sensors.
+    //When a collision is confirmed between 2 sensors, call "collisionDetected" function ting
+    public interface CollisionListener {
+        void onCollisionDetected(int sensor1, int sensor2);
+    }
+    private CollisionListener collisionListener;
+    public void setCollisionListener(CollisionListener listener) {
+        this.collisionListener = listener;
+    }
+    public void collisionDetected(int sensor1, int sensor2) {
+        System.out.println("Collision detected between sensors: " + sensor1 + " and " + sensor2);
 
+        // Notify listener if it's set
+        if (collisionListener != null) {
+            collisionListener.onCollisionDetected(sensor1, sensor2);
+        }
+    }
 }

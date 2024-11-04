@@ -1,27 +1,35 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
-public class frontEnd {
+public class frontEnd implements backEnd.CollisionListener {
     // Original map image size: 1140x820 (aspect ratio 1140/820)
     private static final int ORIGINAL_WIDTH = 1140;
     private static final int ORIGINAL_HEIGHT = 820;
     private static final double ASPECT_RATIO = (double) ORIGINAL_HEIGHT / ORIGINAL_WIDTH;
     private ArrayList<Point> sensorCoordinates = new ArrayList<>();
+    backEnd backEndOBJ = new backEnd();
 
     JFrame window;
     JTabbedPane tabbedPane;
-    JPanel mapPanel;
+    JPanel mapPanel, settingsPanel;
+    DefaultTableModel mapSensorsTableModel;
 
     public void startFrontEnd() {
         System.out.println("Front end started");
         startSettings();
+        backEndOBJ.setCollisionListener(this);
+        backEndOBJ.startBackEnd();
     }
+    public void onCollisionDetected(int sensor1, int sensor2) {
+        System.out.println("FrontEnd: Collision detected between sensors " + sensor1 + " and " + sensor2);
 
+        //TODO Draw a line between the 2 sensors on the map
+    }
     private void startSettings() {
-
         window = new JFrame();
         window.setSize(500, 500);
         window.setTitle("Road Guard Admin");
@@ -91,6 +99,7 @@ public class frontEnd {
 
                     // Store the coordinates relative to the original image
                     sensorCoordinates.add(new Point(imgX, imgY));
+                    updateTableModel();
                     mapPanel.repaint();
                 }
             }
@@ -98,14 +107,22 @@ public class frontEnd {
 
         mapPanel.setBackground(new Color(36, 47, 62));
 
-        // Test page
-        JPanel testPage = new JPanel();
-        testPage.add(new JLabel("Test page"));
-        testPage.setBackground(new Color(36, 47, 62));
+        // Settings page
+        settingsPanel = new JPanel();
+        settingsPanel.add(new JLabel("settings"));
+        settingsPanel.setBackground(new Color(200, 200, 200));
+
+        JTable mapSensorsTable, inputSensors;
+        String[] columnNames = {"Sensors"};
+        mapSensorsTableModel = new DefaultTableModel(columnNames, 0);
+        mapSensorsTable = new JTable(mapSensorsTableModel);
+        mapSensorsTable.setBounds(0, 0, 350, 800);
+
+        settingsPanel.add(mapSensorsTable);
 
         // Available Tabs (Row Order is Tab Index)
         tabbedPane.addTab("Map", mapPanel);
-        tabbedPane.addTab("Test Page", testPage);
+        tabbedPane.addTab("Settings", settingsPanel);
 
         // Set the tabbedPane to fill the window
         window.setLayout(new BorderLayout());
@@ -120,5 +137,14 @@ public class frontEnd {
                 mapPanel.repaint();
             }
         });
+    }
+    private void updateTableModel() {
+        // Clear the current table model
+        mapSensorsTableModel.setRowCount(0);
+        mapSensorsTableModel.addRow(new Object[]{"Sensors"});
+        // Add each sensor coordinate as a single string in (X, Y) format
+        for (Point point : sensorCoordinates) {
+            mapSensorsTableModel.addRow(new Object[]{point.x + ", " + point.y});
+        }
     }
 }

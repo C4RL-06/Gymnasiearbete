@@ -11,6 +11,7 @@ public class frontEnd implements backEnd.CollisionListener {
     private static final int ORIGINAL_HEIGHT = 820;
     private static final double ASPECT_RATIO = (double) ORIGINAL_HEIGHT / ORIGINAL_WIDTH;
     private ArrayList<Point> sensorCoordinates = new ArrayList<>();
+    private ArrayList<Point> collisionBetweenSensors = new ArrayList<>();
     backEnd backEndOBJ = new backEnd();
 
     JFrame window;
@@ -26,8 +27,8 @@ public class frontEnd implements backEnd.CollisionListener {
     }
     public void onCollisionDetected(int sensor1, int sensor2) {
         System.out.println("FrontEnd: Collision detected between sensors " + sensor1 + " and " + sensor2);
-
-        //TODO Draw a line between the 2 sensors on the map
+        collisionBetweenSensors.add(new Point(sensor1, sensor2));
+        mapPanel.repaint();
     }
     private void startSettings() {
         window = new JFrame();
@@ -35,6 +36,9 @@ public class frontEnd implements backEnd.CollisionListener {
         window.setTitle("Road Guard Admin");
         window.setLocationRelativeTo(null);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        sensorCoordinates.add(new Point(200, 200));
+        sensorCoordinates.add(new Point(350, 230));
 
         tabbedPane = new JTabbedPane();
 
@@ -66,6 +70,19 @@ public class frontEnd implements backEnd.CollisionListener {
                 double scaleX = (double) imageWidth / ORIGINAL_WIDTH;
                 double scaleY = (double) imageHeight / ORIGINAL_HEIGHT;
 
+                //Draw lines to indicate a crash between 2 coordinates
+                g.setColor(Color.ORANGE);
+                if (sensorCoordinates.size() >= 2) {
+                    for (Point collisionLine : collisionBetweenSensors) {
+                        int x1 = (int) (sensorCoordinates.get(collisionLine.x -1).x * scaleX) + centerX;
+                        int y1 = (int) (sensorCoordinates.get(collisionLine.x -1).y * scaleY);
+
+                        int x2 = (int) (sensorCoordinates.get(collisionLine.y -1).x * scaleX) + centerX;
+                        int y2 = (int) (sensorCoordinates.get(collisionLine.y -1).y * scaleY);
+                        g.drawLine(x1, y1, x2, y2);
+                    }
+                }
+
                 // Draw the red rectangles at their scaled positions
                 g.setColor(Color.RED);
                 for (Point coordinate : sensorCoordinates) {
@@ -75,7 +92,6 @@ public class frontEnd implements backEnd.CollisionListener {
                 }
             }
         };
-
         // Add mouse listener to mapPanel
         mapPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {

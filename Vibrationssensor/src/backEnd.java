@@ -1,5 +1,5 @@
 import com.fazecast.jSerialComm.SerialPort;
-import jdk.jfr.Event;
+
 
 import java.io.InputStream;
 import java.net.DatagramPacket;
@@ -9,8 +9,8 @@ import java.sql.Timestamp;
 import java.util.Scanner;
 
 public class backEnd {
-    int[] id = {0,0,0};
     int[] data = {0,0,0};
+    Timestamp[] time = {null,null,null};
 
     public void startBackEnd()  {
         System.out.println("Back end started");
@@ -102,6 +102,10 @@ public class backEnd {
 
             byte[] receiveData = new byte[1024]; // Max packet size of 1024
             DatagramPacket receivePacket;
+            int id = 2390;
+            int previousID = 2390;
+            long startTime = 0;
+            long endTime = 0;
 
             while (true) {
 
@@ -110,28 +114,57 @@ public class backEnd {
 
                 String incomingPacket = new String(receivePacket.getData(),0,receivePacket.getLength());
 
+
+
                 // Process the received data
                 if (incomingPacket.endsWith("\n")) {
-
+                    endTime = startTime;
+                    startTime = System.currentTimeMillis();
                     incomingPacket = incomingPacket.trim(); // Remove whitespace/newline characters
 
                     String[] splitInputStream = incomingPacket.split(":");
 
-                    int id = Integer.parseInt(splitInputStream[0].trim());
+                    previousID = id;
+                    id = Integer.parseInt(splitInputStream[0].trim());
                     int value = Integer.parseInt(splitInputStream[1].trim());
 
                     // Gets the client's IP address and port
                     InetAddress IPAddress = receivePacket.getAddress();
                     int port = receivePacket.getPort();
 
-                    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                    Timestamp timestamp = new Timestamp(startTime);
 
                     data[id] = value;
+                    time[id] = timestamp;
                     System.out.println("[" + timestamp + " ,IP: " + IPAddress + " ,Port: " + port +"]  "+"Data ID: " + id + ", Value: " + value);
+
+                    long timeDifference = startTime-endTime;
+                    System.out.println(timeDifference);
+
+                    if (previousID != 2390 && id != previousID){
+                        //Need to check timestamp difference.
+                        if (timeDifference >= 5000 && timeDifference <= 0){
+                            if (data[id] != 0 && data[previousID] != 0){
+                                System.out.println("Collision detected between: "+id+" and "+previousID);
+
+
+                                collisionDetected(id,previousID);
+
+                                data[id] = 0;
+                                data[previousID] = 0;
+                            }
+                        }
+
+
+                    }
+
+
 
                 } else {
                     System.out.println("Error: Incoming packet does not end with newline.");
                 }
+
+
 
             }
         } catch (Exception e){

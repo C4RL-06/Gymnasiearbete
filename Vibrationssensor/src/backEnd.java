@@ -1,96 +1,30 @@
-import com.fazecast.jSerialComm.SerialPort;
-
-
-import java.io.InputStream;
+import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Timestamp;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public class backEnd {
     int[] data = {0,0,0};
     Timestamp[] time = {null,null,null};
+    ArrayList<Integer> physicalIDs = new ArrayList<>();
 
     public void startBackEnd()  {
         System.out.println("Back end started");
         collisionDetected(1, 2);
+        createIDArrayList();
 
-        Scanner sc = new Scanner(System.in);
-        System.out.println("1. Communication Over UDP(WiFi) \n2. Communication over COM(USB Cable)");
-        int userInput = sc.nextInt();
 
-        if (userInput == 1){
-            communicationOverUDP();
-        } else if (userInput == 2){
-            communicationOverCOM();
-        } else {
-            System.out.println("Error: Invalid input");
-            startBackEnd();
-        }
-
+        communicationOverUDP();
 
     }
 
-    private void communicationOverCOM(){
-        System.out.println("Communication Over COM Started");
-        SerialPort arduinoPort = SerialPort.getCommPort("COM3");
 
-        for (int i = 2; i<=6; i++){
-            arduinoPort = SerialPort.getCommPort("COM"+i);
-            System.out.println("COM"+i);
-            if (arduinoPort.openPort()){
-                System.out.println("Open port found (COM"+i+")");
-                break;
-            }
-        }
-
-
-
-        arduinoPort.setComPortParameters(9600,8,1,0);
-        arduinoPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING,10240,0);
-
-        if (!arduinoPort.openPort()){
-            System.out.println("ERROR: COM port not available");
-        }
-
-        try {
-            InputStream in = arduinoPort.getInputStream();
-            StringBuilder messageBuffer = new StringBuilder();
-            byte[] buffer = new byte[1024]; // max packet size of 1024
-            int len;
-
-            while ((len = in.read(buffer)) > 0) {
-                String receivedData = new String(buffer, 0, len);
-                messageBuffer.append(receivedData);  // Append the received data to buffer
-
-                if (receivedData.contains("\n")) {  // \n is the break which shows the code the string is finished
-                    //System.out.println("Received: " + messageBuffer.toString().trim());
-                    String inputStream = messageBuffer.toString().trim();
-                    //System.out.println(inputStream);
-
-                    String[] splitInputStream = inputStream.split(":"); // splitting the inputStream at :
-
-                    //System.out.println("Test Split: "+splitInputStream[0]+" "+splitInputStream[1]); //Testing the splitting of the inputStream
-
-                    int parseSplitInputStream0 = Integer.parseInt(splitInputStream[0].trim());
-
-                    data[parseSplitInputStream0] = Integer.parseInt(splitInputStream[1].trim());
-
-                    messageBuffer.setLength(0);  // Clear the buffer
-
-                    System.out.println("Data 1: "+data[0]+", Data 2:"+data[1]);
-                }
-            }
-
-
-
-        } catch (Exception e) {
-            System.out.println("Error: " + e);
-        } finally {
-            arduinoPort.closePort();
-        }
-    }
 
     private void communicationOverUDP(){
         System.out.println("Communication Over UDP Started");
@@ -131,6 +65,7 @@ public class backEnd {
                     // Gets the client's IP address and port
                     InetAddress IPAddress = receivePacket.getAddress();
                     int port = receivePacket.getPort();
+                    addDevice(IPAddress);
 
                     Timestamp timestamp = new Timestamp(startTime);
 
@@ -172,6 +107,96 @@ public class backEnd {
         }
 
     }
+
+    private int generateNewID(File devicesFile) {
+        int maxID = -1;
+
+        // Read the file and find the max ID number
+        try (BufferedReader reader = new BufferedReader(new FileReader(devicesFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                Pattern pattern = Pattern.compile("ID: (\\d+),");
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    int id = Integer.parseInt(matcher.group(1));
+                    maxID = Math.max(maxID, id);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Return the next available ID
+        return maxID + 1;
+    }
+
+    void addDevice(InetAddress IP){
+        File devicesFile = new File("./Vibrationssensor/device_registry/devices.txt");
+
+        if (isDeviceAlreadyRegistered(devicesFile,IP)){
+            System.out.println("Sensor already exists");
+            return;
+        }
+
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(devicesFile, true))) {
+            int id = generateNewID(devicesFile);
+            InetAddress ip = InetAddress.getByName(IP.getHostAddress());
+            writer.write("ID: " + id + ", IP: " + ip);
+            writer.newLine();
+            System.out.println("Device added successfully.");
+            if (physicalIDs.isEmpty()){
+                createIDArrayList();
+            } else{
+                physicalIDs.add(id);
+            }
+        } catch (IOException e) {
+
+            e.printStackTrace();
+            System.out.println("Error adding device.");
+        }
+
+
+    }
+
+    private boolean isDeviceAlreadyRegistered(File devicesFile, InetAddress ip) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(devicesFile))) {
+            String line;
+            String ipString = "/" + ip.getHostAddress();  // Format to match '/<ip_address>'
+
+            while ((line = reader.readLine()) != null) {
+                // Use the formatted IP string (with leading "/") in the regular expression
+                Pattern pattern = Pattern.compile("IP: " + Pattern.quote(ipString));
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    return true; // IP address already exists in the file
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false; // IP address not found, it's safe to add
+    }
+
+    void createIDArrayList(){
+        try (BufferedReader reader = new BufferedReader(new FileReader( new File("./Vibrationssensor/device_registry/devices.txt")))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                Pattern pattern = Pattern.compile("ID: (\\d+),");
+                Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    int id = Integer.parseInt(matcher.group(1));
+                    physicalIDs.add(id);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     //Code to notify frontEnd when a collision happens between 2 sensors.
     //When a collision is confirmed between 2 sensors, call "collisionDetected" function ting
     public interface CollisionListener {

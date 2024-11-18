@@ -2,7 +2,6 @@ import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -12,15 +11,21 @@ import java.util.regex.Pattern;
 public class backEnd {
     int[] data = {0,0,0};
     Timestamp[] time = {null,null,null};
-    ArrayList<Integer> physicalIDs = new ArrayList<>();
+    public ArrayList<Integer> physicalIDs = new ArrayList<>();
 
     public void startBackEnd()  {
         System.out.println("Back end started");
-        collisionDetected(1, 2);
+        collisionDetected(1, 2, 2);
         createIDArrayList();
 
-
+        try {
+            Thread.sleep(8000);
+        } catch (InterruptedException e) {
+            System.out.println("Sleep interrupted");
+        }
+        collisionDetected(8, 8, 1);
         communicationOverUDP();
+
 
     }
 
@@ -83,7 +88,7 @@ public class backEnd {
                                 System.out.println("Collision detected between: "+id+" and "+previousID);
 
 
-                                collisionDetected(id,previousID);
+                                collisionDetected(id, previousID,2);
 
                                 data[id] = 0;
                                 data[previousID] = 0;
@@ -150,6 +155,7 @@ public class backEnd {
                 createIDArrayList();
             } else{
                 physicalIDs.add(id);
+                onDevicesChanged();
             }
         } catch (IOException e) {
 
@@ -191,6 +197,7 @@ public class backEnd {
                     physicalIDs.add(id);
                 }
             }
+            onDevicesChanged();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -200,18 +207,34 @@ public class backEnd {
     //Code to notify frontEnd when a collision happens between 2 sensors.
     //When a collision is confirmed between 2 sensors, call "collisionDetected" function ting
     public interface CollisionListener {
-        void onCollisionDetected(int sensor1, int sensor2);
+        void onCollisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection);
     }
     private CollisionListener collisionListener;
     public void setCollisionListener(CollisionListener listener) {
         this.collisionListener = listener;
     }
-    public void collisionDetected(int sensor1, int sensor2) {
-        System.out.println("Collision detected between sensors: " + sensor1 + " and " + sensor2);
+    public void collisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection) {
+        //System.out.println("Collision detected between sensors: " + sensor1 + " and " + sensor2);
 
         // Notify listener if it's set
         if (collisionListener != null) {
-            collisionListener.onCollisionDetected(sensor1, sensor2);
+            collisionListener.onCollisionDetected(sensor1, sensor2, singleOrDoubleDetection);
+        }
+    }
+
+    public interface DeviceListener {
+        void onDevicesChanged(ArrayList<Integer>deviceList);
+    }
+    private DeviceListener deviceListener;
+    public void setDeviceListener(DeviceListener listener) {
+        this.deviceListener = listener;
+    }
+    public void onDevicesChanged() {
+
+
+        // Notify listener if it's set
+        if (deviceListener != null) {
+            deviceListener.onDevicesChanged(physicalIDs);
         }
     }
 }

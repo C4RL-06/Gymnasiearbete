@@ -1,35 +1,63 @@
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
-public class frontEnd implements backEnd.CollisionListener {
+public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListener {
     // Original map image size: 1140x820 (aspect ratio 1140/820)
     private static final int ORIGINAL_WIDTH = 1140;
     private static final int ORIGINAL_HEIGHT = 820;
     private static final double ASPECT_RATIO = (double) ORIGINAL_HEIGHT / ORIGINAL_WIDTH;
     private ArrayList<Point> sensorCoordinates = new ArrayList<>();
     private ArrayList<Point> collisionBetweenSensors = new ArrayList<>();
+    private ArrayList<Point> pairedSensors = new ArrayList<>();
+    private ArrayList<Integer> singleDetectionsList = new ArrayList<>();
     backEnd backEndOBJ = new backEnd();
 
     JFrame window;
     JTabbedPane tabbedPane;
     JPanel mapPanel, settingsPanel;
-    DefaultTableModel mapSensorsTableModel;
+    DefaultTableModel mapSensorsTableModel, physicalInputsTabelModel;
 
     public void startFrontEnd() {
-        System.out.println("Front end started");
         startSettings();
+        System.out.println("Front end started");
+
         backEndOBJ.setCollisionListener(this);
+        backEndOBJ.setDeviceListener(this);
         backEndOBJ.startBackEnd();
     }
-    public void onCollisionDetected(int sensor1, int sensor2) {
-        System.out.println("FrontEnd: Collision detected between sensors " + sensor1 + " and " + sensor2);
-        collisionBetweenSensors.add(new Point(sensor1, sensor2));
-        mapPanel.repaint();
+    public void onCollisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection) {
+        if (singleOrDoubleDetection == 2) {
+            System.out.println("FrontEnd: Collision detected between sensors " + sensor1 + " and " + sensor2);
+            collisionBetweenSensors.add(new Point(sensor1, sensor2));
+            mapPanel.repaint();
+        } else {
+            System.out.println("FrontEnd: 1 singular detector fired");
+            for (int i = 0; i < 10; i++) {
+                singleDetectionsList.add(sensor1);
+                mapPanel.repaint();
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    System.out.println("Sleep interrupted");
+                }
+                singleDetectionsList.remove(Integer.valueOf(sensor1));
+                mapPanel.repaint();
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    System.out.println("Sleep interrupted");
+                }
+            }
+        }
     }
+    public void onDevicesChanged(ArrayList<Integer>devicesList) {
+        updateInputsTableModel(devicesList);
+    };
     private void startSettings() {
         window = new JFrame();
         window.setSize(500, 500);
@@ -39,6 +67,7 @@ public class frontEnd implements backEnd.CollisionListener {
 
         sensorCoordinates.add(new Point(200, 200));
         sensorCoordinates.add(new Point(350, 230));
+        sensorCoordinates.add(new Point(500, 400));
 
         tabbedPane = new JTabbedPane();
 
@@ -90,6 +119,20 @@ public class frontEnd implements backEnd.CollisionListener {
                     int y = (int) (coordinate.y * scaleY);
                     g.fillRect(x - 4, y - 4, 8, 8);
                 }
+
+                g.setColor(Color.GREEN);
+                if (singleDetectionsList.size() >= 1) {
+                    for (int singleSensor : singleDetectionsList) {
+                        for (Point pair : pairedSensors) {
+                            if (pair.y == singleSensor) {
+                                System.out.println(sensorCoordinates.get(pair.x));
+                                int x = (int) (sensorCoordinates.get(pair.x).x * scaleX) + centerX;
+                                int y = (int) ((sensorCoordinates.get(pair.x).y) * scaleY);
+                                g.drawRect(x - 5, y - 5, 10, 10);
+                            }
+                        }
+                    }
+                }
             }
         };
         // Add mouse listener to mapPanel
@@ -115,7 +158,7 @@ public class frontEnd implements backEnd.CollisionListener {
 
                     // Store the coordinates relative to the original image
                     sensorCoordinates.add(new Point(imgX, imgY));
-                    updateTableModel();
+                    updateSensorsTableModel();
                     mapPanel.repaint();
                 }
             }
@@ -125,16 +168,53 @@ public class frontEnd implements backEnd.CollisionListener {
 
         // Settings page
         settingsPanel = new JPanel();
-        settingsPanel.add(new JLabel("settings"));
         settingsPanel.setBackground(new Color(200, 200, 200));
+        settingsPanel.setLayout(null);
 
-        JTable mapSensorsTable, inputSensors;
-        String[] columnNames = {"Sensors"};
-        mapSensorsTableModel = new DefaultTableModel(columnNames, 0);
-        mapSensorsTable = new JTable(mapSensorsTableModel);
-        mapSensorsTable.setBounds(0, 0, 350, 800);
+        JLabel settingsLabel = new JLabel("Settings");
+        settingsLabel.setSize(100, 25);
+        settingsLabel.setLocation((window.getWidth() - 50)/2, 2);
+        settingsPanel.add(settingsLabel);
 
-        settingsPanel.add(mapSensorsTable);
+        String[] columnNamesSensors = {"Map Sensors"};
+        mapSensorsTableModel = new DefaultTableModel(columnNamesSensors, 0);
+        JTable mapSensorsTable = new JTable(mapSensorsTableModel);
+        mapSensorsTable.setForeground(Color.BLACK);
+        mapSensorsTable.setGridColor(Color.BLACK);
+        mapSensorsTable.setBorder(new LineBorder(Color.BLACK));
+
+        // Scroll Pane to wrap around the table
+        JScrollPane sensorsScrollPane = new JScrollPane(mapSensorsTable);
+        sensorsScrollPane.setBounds(30, 30, 100, window.getHeight() - 125);
+        settingsPanel.add(sensorsScrollPane);
+
+        String[] columNamesPhysicalInputs = {"Physical inputs"};
+        physicalInputsTabelModel = new DefaultTableModel(columNamesPhysicalInputs, 0);
+        JTable physicalInputsTable = new JTable(physicalInputsTabelModel);
+        physicalInputsTable.setForeground(Color.BLACK);
+        physicalInputsTable.setGridColor(Color.BLACK);
+        physicalInputsTable.setBorder(new LineBorder(Color.BLACK));
+
+        JScrollPane inputsScrollPane = new JScrollPane(physicalInputsTable);
+        inputsScrollPane.setBounds(160, 30, 100, window.getHeight() - 125);
+        settingsPanel.add(inputsScrollPane);
+
+        physicalInputsTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 1) {
+                    int selectedSensorRow = mapSensorsTable.getSelectedRow();
+                    int selectedInputsRow = physicalInputsTable.getSelectedRow();
+
+                    if (doesntContainSelectedSensorsOrInputs(selectedSensorRow, selectedInputsRow)) {
+                        pairedSensors.add(new Point(selectedSensorRow, selectedInputsRow));
+                        System.out.println("Sensors successfully paried sensor: " + sensorCoordinates.get(selectedSensorRow) + " with input: " + selectedInputsRow);
+                    } else {
+                        System.out.println("Pair failed");
+                    }
+                }
+            }
+        });
 
         // Available Tabs (Row Order is Tab Index)
         tabbedPane.addTab("Map", mapPanel);
@@ -147,20 +227,45 @@ public class frontEnd implements backEnd.CollisionListener {
         window.setVisible(true);
 
         // Revalidate and repaint the window when resized
-        window.addComponentListener(new java.awt.event.ComponentAdapter() {
+        settingsPanel.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent evt) {
-                mapPanel.revalidate();
-                mapPanel.repaint();
+                settingsPanel.revalidate();
+                settingsPanel.repaint();
+
+                int panelWidth = settingsPanel.getWidth();
+                int panelHeight = settingsPanel.getHeight();
+
+                settingsLabel.setLocation((panelWidth - 50)/2, 2); //50 = label width/2
+                sensorsScrollPane.setBounds(30, 30, 100, panelHeight - 60);
+                inputsScrollPane.setBounds(160, 30, 100, panelHeight - 60);
             }
         });
+        updateSensorsTableModel();
     }
-    private void updateTableModel() {
+    public boolean doesntContainSelectedSensorsOrInputs(int selectedSensorRow, int selectedInputRow)  {
+        for (Point pair : pairedSensors) {
+            if (sensorCoordinates.get(pair.x) != sensorCoordinates.get(selectedSensorRow) && backEndOBJ.physicalIDs.get(pair.y) != selectedInputRow) {
+
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    private void updateSensorsTableModel() {
         // Clear the current table model
         mapSensorsTableModel.setRowCount(0);
-        mapSensorsTableModel.addRow(new Object[]{"Sensors"});
         // Add each sensor coordinate as a single string in (X, Y) format
         for (Point point : sensorCoordinates) {
             mapSensorsTableModel.addRow(new Object[]{point.x + ", " + point.y});
+        }
+    }
+    private void updateInputsTableModel(ArrayList<Integer>devicesList) {
+        // Clear the current table model
+        physicalInputsTabelModel.setRowCount(0);
+        // Add each sensor coordinate as a single string in (X, Y) format
+        for (int inputID : devicesList) {
+            physicalInputsTabelModel.addRow(new Object[]{inputID});
         }
     }
 }

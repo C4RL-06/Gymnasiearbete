@@ -15,18 +15,8 @@ public class backEnd {
 
     public void startBackEnd()  {
         System.out.println("Back end started");
-        collisionDetected(1, 2, 2);
         createIDArrayList();
-
-        try {
-            Thread.sleep(8000);
-        } catch (InterruptedException e) {
-            System.out.println("Sleep interrupted");
-        }
-        collisionDetected(8, 8, 1);
         communicationOverUDP();
-
-
     }
 
 

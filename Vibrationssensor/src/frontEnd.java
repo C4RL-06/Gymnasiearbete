@@ -33,19 +33,36 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
     public void onCollisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection) {
         if (singleOrDoubleDetection == 2) {
             System.out.println("FrontEnd: Collision detected between sensors " + sensor1 + " and " + sensor2);
-            collisionBetweenSensors.add(new Point(sensor1, sensor2));
-            mapPanel.repaint();
+
+            Thread thread = new Thread(() -> {
+                collisionBetweenSensors.add(new Point(sensor1, sensor2));
+                mapPanel.repaint();
+                try {
+                    Thread.sleep(10000); // Pause for the specified delay
+                } catch (InterruptedException e) {
+                    System.out.println("Thread interrupted: " + e.getMessage());
+                }
+                collisionBetweenSensors.remove(new Point(sensor1, sensor2));
+                mapPanel.repaint();
+            });
+            thread.start();
         } else {
             System.out.println("FrontEnd: 1 singular detector fired");
+
+            Thread thread = new Thread(() -> {
             for (int i = 0; i < 10; i++) {
-                singleDetectionsList.add(sensor1);
+                if (!singleDetectionsList.contains(sensor1)) {
+                    singleDetectionsList.add(sensor1);
+                }
                 mapPanel.repaint();
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
                     System.out.println("Sleep interrupted");
                 }
-                singleDetectionsList.remove(Integer.valueOf(sensor1));
+                if (singleDetectionsList.contains(sensor1)) {
+                    singleDetectionsList.remove(Integer.valueOf(sensor1));
+                }
                 mapPanel.repaint();
                 try {
                     Thread.sleep(500);
@@ -53,6 +70,8 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
                     System.out.println("Sleep interrupted");
                 }
             }
+            });
+            thread.start();
         }
     }
     public void onDevicesChanged(ArrayList<Integer>devicesList) {
@@ -65,9 +84,10 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
         window.setLocationRelativeTo(null);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        sensorCoordinates.add(new Point(200, 200));
-        sensorCoordinates.add(new Point(350, 230));
-        sensorCoordinates.add(new Point(500, 400));
+        sensorCoordinates.add(new Point(623, 86));
+        sensorCoordinates.add(new Point(708, 278));
+        sensorCoordinates.add(new Point(798, 451));
+        sensorCoordinates.add(new Point(868, 639));
 
         tabbedPane = new JTabbedPane();
 
@@ -101,13 +121,32 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
 
                 //Draw lines to indicate a crash between 2 coordinates
                 g.setColor(Color.ORANGE);
-                if (sensorCoordinates.size() >= 2) {
-                    for (Point collisionLine : collisionBetweenSensors) {
-                        int x1 = (int) (sensorCoordinates.get(collisionLine.x -1).x * scaleX) + centerX;
-                        int y1 = (int) (sensorCoordinates.get(collisionLine.x -1).y * scaleY);
+                if (pairedSensors.size() >= 2 && collisionBetweenSensors.size() >= 1) {
+                    ArrayList<Point> sensor1s = new ArrayList<>();
+                    ArrayList<Point> sensor2s = new ArrayList<>();
 
-                        int x2 = (int) (sensorCoordinates.get(collisionLine.y -1).x * scaleX) + centerX;
-                        int y2 = (int) (sensorCoordinates.get(collisionLine.y -1).y * scaleY);
+                    for (Point collisionSensors : collisionBetweenSensors) {
+                        for (Point pair : pairedSensors) {
+                            if (pair.y == collisionSensors.x) {
+                                sensor1s.add(sensorCoordinates.get(pair.x));
+                                break;
+                            }
+                        }
+                    }
+                    for (Point collisionSensors : collisionBetweenSensors) {
+                        for (Point pair : pairedSensors) {
+                            if (pair.y == collisionSensors.y) {
+                                sensor2s.add(sensorCoordinates.get(pair.x));
+                                break;
+                            }
+                        }
+                    }
+                    for (int i = 0; i < sensor2s.size(); i++) {
+                        int x1 = (int) (sensor1s.get(i).x * scaleX) + centerX;
+                        int y1 = (int) (sensor1s.get(i).y * scaleY);
+
+                        int x2 = (int) (sensor2s.get(i).x * scaleX) + centerX;
+                        int y2 = (int) (sensor2s.get(i).y * scaleY);
                         g.drawLine(x1, y1, x2, y2);
                     }
                 }
@@ -121,15 +160,12 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
                 }
 
                 g.setColor(Color.GREEN);
-                if (singleDetectionsList.size() >= 1) {
-                    for (int singleSensor : singleDetectionsList) {
-                        for (Point pair : pairedSensors) {
-                            if (pair.y == singleSensor) {
-                                System.out.println(sensorCoordinates.get(pair.x));
-                                int x = (int) (sensorCoordinates.get(pair.x).x * scaleX) + centerX;
-                                int y = (int) ((sensorCoordinates.get(pair.x).y) * scaleY);
-                                g.drawRect(x - 5, y - 5, 10, 10);
-                            }
+                for (int singleSensor : singleDetectionsList) {
+                    for (Point pair : pairedSensors) {
+                        if (pair.y == singleSensor) {
+                            int x = (int) (sensorCoordinates.get(pair.x).x * scaleX) + centerX;
+                            int y = (int) ((sensorCoordinates.get(pair.x).y) * scaleY);
+                            g.drawRect(x - 5, y - 5, 10, 10);
                         }
                     }
                 }

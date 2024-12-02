@@ -1,2 +1,2 @@
-#define SECRET_SSID "ACAGuest"
-#define SECRET_PASS "FramtidNu"
+#define SECRET_SSID "SSID"
+#define SECRET_PASS "PASS"

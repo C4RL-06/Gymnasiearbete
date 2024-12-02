@@ -83,6 +83,7 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
         window.setTitle("Road Guard Admin");
         window.setLocationRelativeTo(null);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        window.setIconImage(new ImageIcon("./assets/logo.png").getImage());
 
         sensorCoordinates.add(new Point(623, 86));
         sensorCoordinates.add(new Point(708, 278));

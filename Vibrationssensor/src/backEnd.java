@@ -86,6 +86,8 @@ public class backEnd {
                                 data[previousID] = 0;
                             }
                         }
+                    } else{
+                        collisionDetected(id,id,1);
                     }
                 } else {
                     System.out.println("Error: Incoming packet does not end with newline.");

@@ -12,6 +12,7 @@ public class backEnd {
     int[] data = {0,0,0};
     Timestamp[] time = {null,null,null};
     public ArrayList<Integer> physicalIDs = new ArrayList<>();
+    public ArrayList<Integer> singleCurrentDetections = new ArrayList<>();
 
     public void startBackEnd()  {
         System.out.println("Back end started");
@@ -87,7 +88,20 @@ public class backEnd {
                             }
                         }
                     } else{
-                        collisionDetected(id,id,1);
+                        int finalId = id;
+                        Thread thread = new Thread(() -> {
+                            if (!singleCurrentDetections.contains(finalId)) {
+                                singleCurrentDetections.add(finalId);
+                                collisionDetected(finalId,finalId,1);
+                                try {
+                                    Thread.sleep(11000); // Pause for the specified delay
+                                } catch (InterruptedException e) {
+                                    System.out.println("Thread interrupted: " + e.getMessage());
+                                }
+                                singleCurrentDetections.remove(Integer.valueOf(finalId));
+                            }
+                        });
+                        thread.start();
                     }
                 } else {
                     System.out.println("Error: Incoming packet does not end with newline.");

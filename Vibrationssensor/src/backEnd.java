@@ -52,15 +52,15 @@ public class backEnd {
                 if (incomingPacket.endsWith("\n")) {
                     endTime = startTime;
                     startTime = System.currentTimeMillis();
-                    incomingPacket = incomingPacket.trim(); // Remove whitespace/newline characters
 
-                    String[] splitInputStream = incomingPacket.split(":");
+
+
                     InetAddress IPAddress = receivePacket.getAddress();
                     int port = receivePacket.getPort();
 
                     previousID = id;
                     id = ipToID(IPAddress);
-                    int value = Integer.parseInt(splitInputStream[1].trim());
+
 
                     // Gets the client's IP address and port
 
@@ -68,12 +68,11 @@ public class backEnd {
 
                     Timestamp timestamp = new Timestamp(startTime);
 
-                    data[id] = value;
-                    time[id] = timestamp;
-                    System.out.println("[" + timestamp + " ,IP: " + IPAddress + " ,Port: " + port +"]  "+"Data ID: " + id + ", Value: " + value);
 
+                    time[id] = timestamp;
                     long timeDifference = startTime-endTime;
-                    System.out.println(timeDifference);
+                    System.out.println("[" + timestamp + ", IP: " + IPAddress + ", Port: " + port +"]  "+"Data ID: " + id+", TD: "+timeDifference+"ms");
+
 
                     if (previousID != 2390 && id != previousID){
                         //Need to check timestamp difference.

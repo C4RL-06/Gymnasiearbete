@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,6 +14,7 @@ public class backEnd {
     Timestamp[] time = {null,null,null};
     public ArrayList<Integer> physicalIDs = new ArrayList<>();
     public ArrayList<Integer> singleCurrentDetections = new ArrayList<>();
+    public ArrayList<Point> dataBuffer = new ArrayList<>();
 
     public void startBackEnd()  {
         System.out.println("Back end started");
@@ -72,7 +74,7 @@ public class backEnd {
                     time[id] = timestamp;
                     long timeDifference = startTime-endTime;
                     System.out.println("[ \033[0;34m" + timestamp + "\033[0m, IP: \u001B[31m" + IPAddress + "\u001B[0m, Port: \u001B[0;35m" + port +"\u001B[0m ]  "+"Data ID: \033[1;92m" + id+"\033[0m, TD: \u001B[0;33m"+timeDifference+"\033[0mms");
-
+                    dataBuffer.add(new Point(id, Integer.parseInt(String.valueOf(timeDifference))));
 
                     if (previousID != 2390 && id != previousID){
                         //Need to check timestamp difference.

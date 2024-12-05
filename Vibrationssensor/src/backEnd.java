@@ -71,7 +71,7 @@ public class backEnd {
 
                     time[id] = timestamp;
                     long timeDifference = startTime-endTime;
-                    System.out.println("[" + timestamp + ", IP: " + IPAddress + ", Port: " + port +"]  "+"Data ID: " + id+", TD: "+timeDifference+"ms");
+                    System.out.println("[ \033[0;34m" + timestamp + "\033[0m, IP: \u001B[31m" + IPAddress + "\u001B[0m, Port: \u001B[0;35m" + port +"\u001B[0m ]  "+"Data ID: \033[1;92m" + id+"\033[0m, TD: \u001B[0;33m"+timeDifference+"\033[0mms");
 
 
                     if (previousID != 2390 && id != previousID){

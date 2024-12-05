@@ -144,7 +144,7 @@ public class backEnd {
             e.printStackTrace();
             System.out.println("Error reading the devices file.");
         }
-        return -1; // Return -1 if IP not found
+        return physicalIDs.size(); // Return -1 if IP not found
     }
 
 

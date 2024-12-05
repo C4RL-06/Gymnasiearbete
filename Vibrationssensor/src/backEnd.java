@@ -61,7 +61,7 @@ public class backEnd {
                     previousID = id;
                     id = ipToID(IPAddress);
 
-
+                    data[id] = 1;
                     // Gets the client's IP address and port
 
                     //addDevice(IPAddress);
@@ -76,7 +76,7 @@ public class backEnd {
 
                     if (previousID != 2390 && id != previousID){
                         //Need to check timestamp difference.
-                        if (timeDifference <= 5000 && timeDifference >= 0){
+                        if (timeDifference <= 500 && timeDifference >= 0){
                             if (data[id] != 0 && data[previousID] != 0){
                                 System.out.println("Collision detected between: "+id+" and "+previousID);
 

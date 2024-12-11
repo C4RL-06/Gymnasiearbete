@@ -28,7 +28,10 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
 
         backEndOBJ.setCollisionListener(this);
         backEndOBJ.setDeviceListener(this);
-        backEndOBJ.startBackEnd();
+        Thread backEndThread = new Thread(() ->{
+            backEndOBJ.startBackEnd();
+        });
+        backEndThread.start();
     }
     public void onCollisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection) {
         if (singleOrDoubleDetection == 2) {

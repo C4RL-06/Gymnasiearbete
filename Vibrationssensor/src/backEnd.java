@@ -4,17 +4,19 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class backEnd {
     File devicesFile = new File("./Vibrationssensor/device_registry/devices.txt");
-    int[] data = {0,0,0};
-    Timestamp[] time = {null,null,null};
     public ArrayList<Integer> physicalIDs = new ArrayList<>();
     public ArrayList<Integer> singleCurrentDetections = new ArrayList<>();
-    public ArrayList<dataOBJ> dataBuffer = new ArrayList<>();
-    public ArrayList<IDandIP> IDandIPList = new ArrayList<>();
+    private final BlockingQueue<dataOBJ> dataBuffer = new LinkedBlockingQueue<>();
+    private final Map<InetAddress, Integer> IDandIPMap = new HashMap<>();
 
     public void startBackEnd()  {
         System.out.println("Back end started");
@@ -42,59 +44,54 @@ public class backEnd {
     }
 
     private void processData(){
-        Thread processDataThread = new Thread(()-> {
+
+        Thread processDataThread = new Thread(() -> {
             try {
-                //DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt("2390")); //The Integer is the port that we are listening at
-                //System.out.println("Server Started. Listening for Clients on port 2390");
-
-                InetAddress packet1IP, packet2IP;
-
                 while (true) {
-                    if (dataBuffer.size() >= 2) {
-                        //serverSocket.receive(dataBuffer.get(0).recievedPacket);
-                        //serverSocket.receive(dataBuffer.get(1).recievedPacket);
+                    // Take the next packet, blocking until one is available
+                    dataOBJ packet1 = dataBuffer.take();
+                    dataOBJ packet2 = dataBuffer.take();
 
-                        String incomingPacket = new String(dataBuffer.get(0).recievedPacket.getData(), 0, dataBuffer.get(0).recievedPacket.getLength());
-                        String incomingPacket2 = new String(dataBuffer.get(1).recievedPacket.getData(), 0, dataBuffer.get(1).recievedPacket.getLength());
-                        if (incomingPacket.endsWith("\n") && incomingPacket2.endsWith("\n")) {
-                            packet1IP = dataBuffer.get(0).recievedPacket.getAddress();
-                            packet2IP = dataBuffer.get(1).recievedPacket.getAddress();
-                            System.out.println("[ \033[0;34m" + new Timestamp(dataBuffer.get(0).timeOfRecieve) + "\033[0m, IP: \u001B[31m" + packet1IP + "\u001B[0m, Port: \u001B[0;35m" + dataBuffer.get(0).recievedPacket.getPort() +"\u001B[0m ]  "+"Data ID: \033[1;92m" + ipToID(packet1IP) +"\033[0m, TD: \u001B[0;33m"+ (dataBuffer.get(1).timeOfRecieve - dataBuffer.get(0).timeOfRecieve) + "\033[0mms");
-                            if (!String.valueOf(packet1IP).equals(String.valueOf(packet2IP)) && dataBuffer.get(1).timeOfRecieve - dataBuffer.get(0).timeOfRecieve <= 500) {
-                                //collision detected between 2 sensors, get ID here and pass on to collisiondetected
-                                collisionDetected(ipToID(packet1IP), ipToID(packet2IP), 2);
-                            } else {
-                                //Single collision detected here
-                                int ID = ipToID(packet1IP);
-                                Thread thread = new Thread(() -> {
-                                    if (!singleCurrentDetections.contains(ID)) {
-                                        singleCurrentDetections.add(ID);
-                                        collisionDetected(ID,ID,1);
-                                        try {
-                                            Thread.sleep(11000); // Pause for the specified delay
-                                        } catch (InterruptedException e) {
-                                            System.out.println("Thread interrupted: " + e.getMessage());
-                                        }
-                                        singleCurrentDetections.remove(Integer.valueOf(ID));
+                    String incomingPacket1 = new String(packet1.recievedPacket.getData(), 0, packet1.recievedPacket.getLength());
+                    String incomingPacket2 = new String(packet2.recievedPacket.getData(), 0, packet2.recievedPacket.getLength());
+
+                    if (incomingPacket1.endsWith("\n") && incomingPacket2.endsWith("\n")) {
+                        long timeDiff = (packet2.timeOfRecieve - packet1.timeOfRecieve) / 1_000_000; // Convert from ns to ms
+
+                        InetAddress packet1IP = packet1.recievedPacket.getAddress();
+                        InetAddress packet2IP = packet2.recievedPacket.getAddress();
+
+                        System.out.printf("[ IP: %s, Port: %d ] Data ID: %d, TD: %dms%n",
+                                // Convert to ms
+                                packet1IP, packet1.recievedPacket.getPort(),
+                                ipToID(packet1IP), timeDiff);
+
+                        if (!packet1IP.equals(packet2IP) && timeDiff <= 500) {
+                            collisionDetected(ipToID(packet1IP), ipToID(packet2IP), 2);
+                        } else {
+                            int packet1ID = ipToID(packet1IP);
+                            Thread thread = new Thread(() -> {
+                                if (!singleCurrentDetections.contains(packet1ID)) {
+                                    singleCurrentDetections.add(packet1ID);
+                                    collisionDetected(packet1ID, packet1ID, 1);
+                                    try {
+                                        Thread.sleep(11000); // Pause for the specified delay
+                                    } catch (InterruptedException e) {
+                                        System.out.println("Thread interrupted: " + e.getMessage());
                                     }
-                                });
-                                thread.start();
-                            }
+                                    singleCurrentDetections.remove(Integer.valueOf(packet1ID));
+                                }
+                            });
+                            thread.start();
                         }
-                        dataBuffer.remove(0);
-                    } else {
-                        Thread.sleep(250); //to not spam
                     }
                 }
-            } catch (Exception e){
-                System.out.println("Error: "+e);
+            } catch (Exception e) {
+                System.out.println("Error in processData: " + e.getMessage());
             }
         });
         processDataThread.start();
     }
-    protected int id = 2390;
-    protected int previousID = 2390;
-    protected byte[] receiveData = new byte[1024]; // Max packet size of 1024
     private void communicationOverUDP(){
         System.out.println("Communication Over UDP Started");
         //You will need to allow the port 2390 through your firewall
@@ -102,80 +99,62 @@ public class backEnd {
         try {
             DatagramSocket serverSocket = new DatagramSocket(Integer.parseInt("2390")); //The Integer is the port that we are listening at
             System.out.println("Server Started. Listening for Clients on port 2390");
-            DatagramPacket receivePacket;
 
             while (true) {
-                receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                serverSocket.receive(receivePacket);
-                dataBuffer.add(new dataOBJ(receivePacket, System.currentTimeMillis()));
+                byte[] receiveData = new byte[1024];
+                DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
+                serverSocket.receive(receivePacket); // Blocking call
+                long timestamp = System.nanoTime(); // High precision timestamp
+                synchronized (dataBuffer) {
+                    dataBuffer.add(new dataOBJ(receivePacket, timestamp));
+                }
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private int ipToID(InetAddress ip){
-        if (isDeviceAlreadyRegistered(ip)){
-            return getID(ip);
-        } else {
-            return addDevice(ip);
-        }
+    private int ipToID(InetAddress ip) {
+        return IDandIPMap.computeIfAbsent(ip, this::addDevice);
     }
 
-    private int getID(InetAddress ip) {
-        if (IDandIPList.size() >= 1) {
-            for (IDandIP iDandIP : IDandIPList) {
-                if (String.valueOf(iDandIP.IPAdress).equals(String.valueOf(ip))) {
-                    return iDandIP.correspondingID;
-                }
-            }
-        }
-        return -1;
-    }
-
-    private int addDevice(InetAddress IP){
+    private int addDevice(InetAddress ip) {
+        int id = IDandIPMap.size();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(devicesFile, true))) {
-            int id = IDandIPList.size();
-            writer.write("ID: " + id + ", IP: " + IP);
+            writer.write("ID: " + id + ", IP: " + ip);
             writer.newLine();
             writer.flush();
-            System.out.println("Device added (" + IP + ")");
+            System.out.println("Device added (" + ip + ")");
             createIDArrayList();
             onDevicesChanged();
-            return id;
         } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Error adding device.");
+            System.out.println("Error adding device: " + e.getMessage());
         }
-        return -1;
+        return id;
     }
-
-    private boolean isDeviceAlreadyRegistered(InetAddress ip) {
-        if (!IDandIPList.isEmpty()) {
-            for (IDandIP iDandIP : IDandIPList) {
-                if (String.valueOf(iDandIP.IPAdress).equals(String.valueOf(ip))) {
-                    return true;
-                }
-            }
-        }
-        return false; // IP address not found, it's safe to add
-    }
-
-    void createIDArrayList(){
-        IDandIPList.clear();
+    void createIDArrayList() {
+        // Clear the ID mapping and physicalIDs list
+        IDandIPMap.clear();
         physicalIDs.clear();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(devicesFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                Pattern IPAdressPattern = Pattern.compile("/(\\d+\\.\\d+\\.\\d+\\.\\d+)");
-                Matcher IPAdressMatcher = IPAdressPattern.matcher(line);
+                // Extract the IP address and ID from the file
+                Pattern ipPattern = Pattern.compile("/(\\d+\\.\\d+\\.\\d+\\.\\d+)");
+                Pattern idPattern = Pattern.compile("ID: (\\d+)");
+                Matcher ipMatcher = ipPattern.matcher(line);
+                Matcher idMatcher = idPattern.matcher(line);
 
-                if (IPAdressMatcher.find()) {
-                    String IPAdressUnformated = IPAdressMatcher.group(1);
-                    InetAddress IPAddress = InetAddress.getByName(IPAdressUnformated);
-                    physicalIDs.add(IDandIPList.size());
-                    IDandIPList.add(new IDandIP(IPAddress, IDandIPList.size()));
+                if (ipMatcher.find() && idMatcher.find()) {
+                    String ipString = ipMatcher.group(1);
+                    int id = Integer.parseInt(idMatcher.group(1));
+                    InetAddress ipAddress = InetAddress.getByName(ipString);
+
+                    // Populate the map with existing entries
+                    IDandIPMap.put(ipAddress, id);
+                    physicalIDs.add(id); // Maintain physical ID list if needed
                 }
             }
             onDevicesChanged();

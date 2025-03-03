@@ -28,10 +28,7 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
 
         backEndOBJ.setCollisionListener(this);
         backEndOBJ.setDeviceListener(this);
-        Thread backEndThread = new Thread(() ->{
-            backEndOBJ.startBackEnd();
-        });
-        backEndThread.start();
+        backEndOBJ.startBackEnd();
     }
     public void onCollisionDetected(int sensor1, int sensor2, int singleOrDoubleDetection) {
         if (singleOrDoubleDetection == 2) {
@@ -91,7 +88,6 @@ public class frontEnd implements backEnd.CollisionListener, backEnd.DeviceListen
         sensorCoordinates.add(new Point(623, 86));
         sensorCoordinates.add(new Point(708, 278));
         sensorCoordinates.add(new Point(798, 451));
-        sensorCoordinates.add(new Point(868, 639));
 
         tabbedPane = new JTabbedPane();
 
